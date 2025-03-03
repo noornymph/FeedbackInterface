@@ -31,4 +31,20 @@ export const initiateGoogleLogin = () => {
   window.location.href = `${API_URL}/accounts/google/login/`;
 };
 
+export const summarizeFeedback = async (feedbackData) => {
+  const response = await fetch('/api/feedback/summarize/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(feedbackData)
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to summarize feedback');
+  }
+  
+  return response.json();
+};
+
 export default api;
