@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Pagination, CircularProgress, Alert, Button, Dialog, DialogContent, DialogTitle, DialogActions } from '@mui/material';
+import { Box, Typography, Pagination, CircularProgress, Alert, Button, Dialog, DialogContent, DialogTitle, DialogActions, Fade } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { getFeedbacks, summarizeFeedback } from '../services/api';
 import FeedbackItem from './FeedbackItem';
 import ReactMarkdown from 'react-markdown';
+import { BoltRounded as LightningIcon } from '@mui/icons-material';
+import React from 'react';
 
 const FeedbackList = () => {
   const { user } = useAuth();
@@ -72,72 +74,126 @@ const FeedbackList = () => {
     }
   };
 
-  const SummaryDialog = () => (
-    <Dialog 
-      open={openSummary} 
-      onClose={() => setOpenSummary(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        {summaryLoading ? 'Generating Summary...' : 'Feedback Summary'}
-      </DialogTitle>
-      <DialogContent>
-        {summaryLoading ? (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              alignItems: 'center',
-              py: 4
-            }}
-          >
-            <CircularProgress size={60} sx={{ mb: 2 }} />
-            <Typography variant="body1" color="text.secondary">
-              Analyzing your feedback...
-            </Typography>
-          </Box>
-        ) : summary && (
-          <>
-            <Typography variant="subtitle1" gutterBottom>
-              Based on {summary.feedback_count} feedback items
-            </Typography>
-            <Box sx={{ mt: 2 }}>
-              <ReactMarkdown>{summary.summary}</ReactMarkdown>
-            </Box>
-          </>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setOpenSummary(false)}>
-          {summaryLoading ? 'Wait...' : 'Close'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+  const SummaryDialog = () => {
+    const [displayContent, setDisplayContent] = React.useState('loading');
+    
+    React.useEffect(() => {
+      if (summaryLoading) {
+        setDisplayContent('loading');
+      } else if (summary) {
+        setDisplayContent('summary');
+      }
+    }, [summaryLoading, summary]);
 
-  const LoadingOverlay = () => (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1300,
-      }}
-    >
-      <CircularProgress size={60} sx={{ mb: 2 }} />
-      <Typography variant="h6" color="text.secondary">
-        Generating Feedback Summary...
-      </Typography>
-    </Box>
-  );
+    return (
+      <Dialog 
+        open={openSummary || summaryLoading}
+        onClose={() => !summaryLoading && setOpenSummary(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            minWidth: '600px',
+            minHeight: '700px',
+            maxHeight: '90vh',
+            height: 'auto'
+          }
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h6">
+            Feedback Summary
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ flex: 1 }}>
+          <Box sx={{ 
+            minHeight: '600px',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <Fade 
+              in={displayContent === 'loading'} 
+              timeout={{
+                enter: 400,
+                exit: 200
+              }}
+            >
+              <Box sx={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 4
+              }}>
+                <CircularProgress size={60} sx={{ mb: 3 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  Analyzing your feedback...
+                </Typography>
+                <Typography variant="body1" color="text.secondary" textAlign="center">
+                  Please wait while we generate insights from your feedback
+                </Typography>
+              </Box>
+            </Fade>
+
+            <Fade 
+              in={displayContent === 'summary'} 
+              timeout={{
+                enter: 400,
+                exit: 200
+              }}
+            >
+              <Box sx={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                overflowY: 'auto',
+                py: 3,
+                px: 2,
+                '& > *': { maxWidth: '100%' }
+              }}>
+                {summary && (
+                  <>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Based on {summary.feedback_count} feedback items
+                    </Typography>
+                    <Box sx={{ 
+                      mt: 2,
+                      '& p, & ul, & ol': { 
+                        mb: 2
+                      }
+                    }}>
+                      <ReactMarkdown>{summary.summary}</ReactMarkdown>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            </Fade>
+          </Box>
+        </DialogContent>
+        <Fade 
+          in={displayContent === 'summary'}
+          timeout={{
+            enter: 400,
+            exit: 200
+          }}
+        >
+          <DialogActions>
+            <Button onClick={() => setOpenSummary(false)}>
+              Close
+            </Button>
+          </DialogActions>
+        </Fade>
+      </Dialog>
+    );
+  };
 
   if (loading) {
     return (
@@ -157,8 +213,6 @@ const FeedbackList = () => {
 
   return (
     <Box sx={{ py: 4, px: 2 }}>
-      {summaryLoading && <LoadingOverlay />}
-      
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <div>
           <Typography variant="h4" component="h1" gutterBottom>
@@ -170,11 +224,35 @@ const FeedbackList = () => {
         </div>
         {feedbacks.length > 0 && (
           <Button 
-            variant="contained" 
+            variant="contained"
             onClick={handleSummarize}
             disabled={summaryLoading}
+            startIcon={<LightningIcon sx={{ fontSize: 22 }} />}
+            sx={{
+              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+              borderRadius: '8px',
+              border: 0,
+              color: 'white',
+              height: 42,
+              padding: '0 20px',
+              boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+              textTransform: 'none',
+              fontSize: '17px',
+              fontWeight: 400,
+              minWidth: 'auto',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #1976D2 30%, #0FBFE9 90%)',
+                boxShadow: '0 4px 6px 2px rgba(33, 203, 243, .4)',
+                transform: 'translateY(-1px)',
+                transition: 'all 0.2s ease-in-out',
+              },
+              '&:disabled': {
+                background: 'linear-gradient(45deg, #9e9e9e 30%, #bdbdbd 90%)',
+                boxShadow: 'none',
+              }
+            }}
           >
-            Summarize Feedback
+            Summarize
           </Button>
         )}
       </Box>
