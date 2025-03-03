@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Pagination, CircularProgress, Alert, Button, Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { Box, Typography, Pagination, CircularProgress, Alert, Button, Dialog, DialogContent, DialogTitle, DialogActions } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { getFeedbacks, summarizeFeedback } from '../services/api';
 import FeedbackItem from './FeedbackItem';
@@ -79,9 +79,25 @@ const FeedbackList = () => {
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle>Feedback Summary</DialogTitle>
+      <DialogTitle>
+        {summaryLoading ? 'Generating Summary...' : 'Feedback Summary'}
+      </DialogTitle>
       <DialogContent>
-        {summary && (
+        {summaryLoading ? (
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center',
+              py: 4
+            }}
+          >
+            <CircularProgress size={60} sx={{ mb: 2 }} />
+            <Typography variant="body1" color="text.secondary">
+              Analyzing your feedback...
+            </Typography>
+          </Box>
+        ) : summary && (
           <>
             <Typography variant="subtitle1" gutterBottom>
               Based on {summary.feedback_count} feedback items
@@ -92,7 +108,35 @@ const FeedbackList = () => {
           </>
         )}
       </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenSummary(false)}>
+          {summaryLoading ? 'Wait...' : 'Close'}
+        </Button>
+      </DialogActions>
     </Dialog>
+  );
+
+  const LoadingOverlay = () => (
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1300,
+      }}
+    >
+      <CircularProgress size={60} sx={{ mb: 2 }} />
+      <Typography variant="h6" color="text.secondary">
+        Generating Feedback Summary...
+      </Typography>
+    </Box>
   );
 
   if (loading) {
@@ -113,6 +157,8 @@ const FeedbackList = () => {
 
   return (
     <Box sx={{ py: 4, px: 2 }}>
+      {summaryLoading && <LoadingOverlay />}
+      
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <div>
           <Typography variant="h4" component="h1" gutterBottom>
@@ -128,7 +174,7 @@ const FeedbackList = () => {
             onClick={handleSummarize}
             disabled={summaryLoading}
           >
-            {summaryLoading ? 'Summarizing...' : 'Summarize Feedback'}
+            Summarize Feedback
           </Button>
         )}
       </Box>
