@@ -32,19 +32,13 @@ export const initiateGoogleLogin = () => {
 };
 
 export const summarizeFeedback = async (feedbackData) => {
-  const response = await fetch('/api/feedback/summarize/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(feedbackData)
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to summarize feedback');
+  try {
+    const response = await api.post('/api/feedback/summarize/', feedbackData);
+    return response.data;
+  } catch (error) {
+    console.error('Error summarizing feedback:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 export default api;
