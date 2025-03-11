@@ -1,9 +1,13 @@
-import { Card, CardContent, Typography, Box, Chip, Avatar } from '@mui/material';
+import { Card, CardContent, Typography, Box, Chip, Avatar, IconButton, Tooltip } from '@mui/material';
 import { format } from 'date-fns';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import SlackIcon from '@mui/icons-material/AlternateEmail';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { useState } from 'react';
 
 const FeedbackItem = ({ feedback }) => {
+  const [tooltipTitle, setTooltipTitle] = useState("Copy message");
+  
   // Keywords to check for thumbs-up related reactions
   const thumbsUpKeywords = ["thumbsup", "+1", "plusone", "plus1", "thumbs-up"];
   
@@ -64,6 +68,18 @@ const FeedbackItem = ({ feedback }) => {
   
   const formattedMessage = formatMessage(feedback.message);
   
+  const handleCopyClick = async () => {
+    try {
+      await navigator.clipboard.writeText(feedback.message);
+      setTooltipTitle("Copied!");
+      setTimeout(() => {
+        setTooltipTitle("Copy message");
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
   return (
     <Card sx={{ mb: 2, borderLeft: '4px solid #1976d2' }}>
       <CardContent>
@@ -71,9 +87,25 @@ const FeedbackItem = ({ feedback }) => {
           <Typography variant="subtitle1" fontWeight="bold">
             From: {formattedSenderName}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {format(new Date(feedback.timestamp), 'MMM d, yyyy h:mm a')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {format(new Date(feedback.timestamp), 'MMM d, yyyy h:mm a')}
+            </Typography>
+            <Tooltip title={tooltipTitle}>
+              <IconButton 
+                onClick={handleCopyClick}
+                size="small"
+                sx={{ 
+                  padding: '4px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 0.08)'
+                  }
+                }}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
         
         {feedback.source && (
